@@ -1,0 +1,49 @@
+import numpy as np
+import pandas as pd
+
+def calculate_mfi(high, low, close, volume, period=14):
+    # Calculate typical price
+    typical_price = (high + low + close) / 3
+    # Calculate money flow
+    raw_money_flow = typical_price * volume
+    # Define positive and negative money flow
+    positive_flow = np.where(typical_price > typical_price.shift(1), raw_money_flow, 0)
+    negative_flow = np.where(typical_price < typical_price.shift(1), raw_money_flow, 0)
+    # Calculate the money flow ratio
+    positive_flow_sum = positive_flow.rolling(window=period).sum()
+    negative_flow_sum = negative_flow.rolling(window=period).sum()
+    money_flow_ratio = positive_flow_sum / negative_flow_sum
+    # Calculate MFI
+    mfi = 100 - (100 / (1 + money_flow_ratio))
+    return mfi
+
+def find_divergences(price, mfi, lookback_period):
+    buy_signals = []
+    sell_signals = []
+    
+    for i in range(lookback_period, len(price)):
+        price_low = price[i-lookback_period:i].min()
+        mfi_low = mfi[i-lookback_period:i].min()
+        
+        price_high = price[i-lookback_period:i].max()
+        mfi_high = mfi[i-lookback_period:i].max()
+        
+        if price[i] == price_low and mfi[i] > mfi_low:
+            buy_signals.append(i)
+        elif price[i] == price_high and mfi[i] < mfi_high:
+            sell_signals.append(i)
+            
+    return buy_signals, sell_signals
+
+# Example usage
+data = pd.read_csv('path_to_your_data.csv')
+high = data['High']
+low = data['Low']
+close = data['Close']
+volume = data['Volume']
+
+mfi = calculate_mfi(high, low, close, volume)
+buy_signals, sell_signals = find_divergences(close, mfi, 14)
+
+print("Buy Signals:", buy_signals)
+print("Sell Signals:", sell_signals)
