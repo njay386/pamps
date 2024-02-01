@@ -1,0 +1,2 @@
+# pamps
+repository for testnets
